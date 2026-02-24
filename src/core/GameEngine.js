@@ -156,8 +156,8 @@ export class GameEngine {
     }
 
     _generateBuildings() {
-        // Generate random buildings for the skyline
-        const count = 20;
+        // Generate random buildings for the skyline - increased count for responsive scaling
+        const count = 60;
         for (let i = 0; i < count; i++) {
             this.buildings.push({
                 x: i * 30 + Math.random() * 10 - 5,
@@ -246,35 +246,22 @@ export class GameEngine {
         const isLandscape = window.innerWidth > window.innerHeight;
         const isDesktop = window.innerWidth >= 768;
 
-        let canvasWidth, canvasHeight;
-
-        if (isLandscape && isDesktop) {
-            canvasWidth = 800;
-            canvasHeight = 450;
-        } else {
-            canvasWidth = 288;
-            canvasHeight = 512;
-        }
-
-        const aspectRatio = canvasWidth / canvasHeight;
         let width = container.clientWidth;
         let height = container.clientHeight;
 
-        if (isLandscape && isDesktop) {
-            width = container.clientWidth;
-            height = container.clientHeight;
-        } else {
-            if (width / height > aspectRatio) {
-                width = height * aspectRatio;
-            } else {
-                height = width / aspectRatio;
-            }
+        // Adapt mobile mode by natively filling the container dimensions
+        let canvasWidth = width;
+        let canvasHeight = height;
+
+        if (isDesktop && isLandscape) {
+            // Cap width on ultrawide desktop monitors so it remains playable
+            canvasWidth = Math.min(width, height * 1.8);
         }
 
         this.canvas.width = canvasWidth;
         this.canvas.height = canvasHeight;
-        this.canvas.style.width = `${width}px`;
-        this.canvas.style.height = `${height}px`;
+        this.canvas.style.width = `${canvasWidth}px`;
+        this.canvas.style.height = `${canvasHeight}px`;
 
         if (this.state === GameState.INIT) {
             this.physics.init(this.canvas.width, this.canvas.height);
@@ -805,8 +792,8 @@ export class GameEngine {
         setTimeout(() => this.canvas.classList.remove('shake'), 500);
 
         if (this.audioManager) {
+            this.audioManager.stopBgm();
             this.audioManager.playCrash();
-            this.audioManager.fadeOutBgm();
         }
 
         if (this.score > this.highScore) {
