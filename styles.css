@@ -4,14 +4,24 @@
     box-sizing: border-box;
 }
 
-/* Hide Vercel toolbar */
+/* Hide Vercel toolbar and all related elements */
 .g_U3r8dd_7sgVHnNnVpT,
 [aria-label="Vercel Toolbar"],
-.vercel-toolbar {
+.vercel-toolbar,
+[class*="vercel"],
+[id*="vercel"],
+[data-vercel],
+[popovertarget],
+button[aria-label*="Vercel"],
+div[aria-label*="Vercel"],
+svg + div:empty {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
 }
 
 :root {

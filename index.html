@@ -58,6 +58,17 @@
     </div>
 
     <script type="module" src="main.js"></script>
+    <script>
+        // Remove Vercel toolbar
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(function() {
+                var vercelBtn = document.querySelector('[aria-label="Vercel Toolbar"]');
+                if (vercelBtn) vercelBtn.remove();
+                var popover = document.querySelector('[popovertarget]');
+                if (popover && popover.tagName === 'BUTTON') popover.remove();
+            }, 100);
+        });
+    </script>
 </body>
 
 </html>
