@@ -457,8 +457,10 @@ export class GameEngine {
         this._drawBackground();
         this._drawPipes();
         this._drawBrickBorders();
-        this._drawSnake();
         this._drawBird();
+        if (this.isCrashed) {
+            this._drawSnake();
+        }
     }
 
     // ===== BACKGROUND: Ruined City Skyline =====
@@ -704,8 +706,6 @@ export class GameEngine {
     // ===== SNAKE (COBRA) =====
     _drawSnake() {
         const snake = this.physics.getSnake();
-        
-        if (snake.x < -50) return;
         
         this.ctx.save();
         this.ctx.translate(snake.x + snake.width / 2, snake.y + snake.height / 2);
