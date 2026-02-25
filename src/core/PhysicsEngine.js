@@ -76,8 +76,8 @@ export class PhysicsEngine {
     }
 
     snakeAttack(bird) {
-        this.snake.x = bird.x - this.snake.width * 0.1;
-        this.snake.y = bird.y + bird.height * 0.1;
+        this.snake.x = bird.x + bird.width * 0.1;
+        this.snake.y = bird.y + bird.height * 0.15;
     }
 
     _clampBounds() {
