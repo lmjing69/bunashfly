@@ -73,6 +73,11 @@ export class PhysicsEngine {
         this.snake.y = Math.max(this.borderHeight + 10, Math.min(this.canvas.height - this.borderHeight - this.snake.height - 10, this.snake.y));
     }
 
+    snakeAttack(bird) {
+        this.snake.x = bird.x + bird.width / 2 - this.snake.width / 2;
+        this.snake.y = bird.y + bird.height / 2 - this.snake.height / 2;
+    }
+
     _clampBounds() {
         const topBound = this.borderHeight + 2;
         const bottomBound = this.canvas.height - this.borderHeight - this.bird.height;

@@ -840,6 +840,9 @@ export class GameEngine {
             this.animationFrameId = null;
         }
 
+        const bird = this.physics.getBird();
+        this.physics.snakeAttack(bird);
+
         const faces = CONFIG.crashFaces;
         this.crashFace = faces[Math.floor(Math.random() * faces.length)];
 
