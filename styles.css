@@ -4,6 +4,16 @@
     box-sizing: border-box;
 }
 
+/* Hide Vercel toolbar */
+.g_U3r8dd_7sgVHnNnVpT,
+[aria-label="Vercel Toolbar"],
+.vercel-toolbar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 :root {
     --bg-dark: #1a0e07;
     --bg-gradient-start: #2d1810;
