@@ -56,4 +56,8 @@ export class CollisionManager {
         }
         return false;
     }
+
+    checkSnakeCollision(birdHitbox, snakeHitbox) {
+        return this._checkAABB(birdHitbox, snakeHitbox);
+    }
 }

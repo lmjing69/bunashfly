@@ -123,6 +123,37 @@ body {
     margin-bottom: 32px;
 }
 
+.pause-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--text-primary);
+    border: none;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pause-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+    transform: scale(1.1);
+}
+
+.pause-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin-bottom: 24px;
+}
+
 .btn {
     background: var(--accent-gradient);
     color: #1a0a04;
@@ -173,9 +204,9 @@ body {
     font-family: var(--font-display);
     font-size: 2rem;
     font-weight: 700;
-    color: var(--danger);
+    color: var(--accent-primary);
     margin-bottom: 16px;
-    filter: drop-shadow(0 2px 8px rgba(239, 68, 68, 0.5));
+    filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.5));
 }
 
 #crash-face-container {

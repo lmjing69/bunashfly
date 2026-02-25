@@ -251,7 +251,6 @@ export class AudioManager {
 
         this.bgm.currentTime = 0;
 
-        // Browsers handle play() safely regardless of current readyState
         const playPromise = this.bgm.play();
         if (playPromise !== undefined) {
             playPromise.catch(e => {
@@ -261,10 +260,20 @@ export class AudioManager {
         console.log('BGM play action triggered');
     }
 
+    isBgmPlaying() {
+        return this.bgm && !this.bgm.paused;
+    }
+
     stopBgm() {
         if (this.bgm) {
             this.bgm.pause();
             this.bgm.currentTime = 0;
+        }
+        if (this.bgmSource) {
+            try {
+                this.bgmSource.stop();
+            } catch (e) {}
+            this.bgmSource = null;
         }
     }
 

@@ -1,27 +1,37 @@
 export class PhysicsEngine {
     constructor(canvas) {
         this.canvas = canvas;
-        this.gravity = 0.3;       // Slower gravity — easy/medium difficulty
-        this.jumpForce = -6;      // Softer jump
-        this.maxVelocity = 8;     // Slower max fall speed
-        this.borderHeight = 40;   // Brick wall border height
+        this.gravity = 0.4;
+        this.jumpForce = -7;
+        this.maxVelocity = 9;
+        this.borderHeight = 40;
         this.bird = {
             x: 0,
             y: 0,
-            width: 60,
-            height: 60, // Larger size for player uploaded images
+            width: 45,
+            height: 45,
             velocity: 0,
             rotation: 0
         };
-        this.rotationSpeed = 0.08;
-        this.maxRotation = Math.PI / 6; // Less extreme tilt
+        this.snake = {
+            x: 0,
+            y: 0,
+            width: 60,
+            height: 30,
+            speed: 3.5
+        };
+        this.rotationSpeed = 0.1;
+        this.maxRotation = Math.PI / 4;
     }
 
     init(canvasWidth, canvasHeight) {
-        this.bird.x = canvasWidth * 0.4;
-        this.bird.y = canvasHeight * 0.2; // Start higher up (20% from top)
+        this.bird.x = canvasWidth * 0.25;
+        this.bird.y = canvasHeight * 0.45;
         this.bird.velocity = 0;
         this.bird.rotation = 0;
+        
+        this.snake.x = -80;
+        this.snake.y = canvasHeight * 0.45;
     }
 
     jump() {
@@ -44,6 +54,23 @@ export class PhysicsEngine {
         }
 
         this._clampBounds();
+        this._updateSnake(deltaTime);
+    }
+
+    _updateSnake(deltaTime) {
+        const normalizedDelta = deltaTime / 16.67;
+        
+        const targetX = this.bird.x - 80;
+        
+        if (this.snake.x < targetX) {
+            this.snake.x += this.snake.speed * normalizedDelta;
+        }
+        
+        const targetY = this.bird.y + this.bird.height / 2 - this.snake.height / 2;
+        const diff = targetY - this.snake.y;
+        this.snake.y += diff * 0.03 * normalizedDelta;
+        
+        this.snake.y = Math.max(this.borderHeight + 10, Math.min(this.canvas.height - this.borderHeight - this.snake.height - 10, this.snake.y));
     }
 
     _clampBounds() {
@@ -65,6 +92,10 @@ export class PhysicsEngine {
         return this.bird;
     }
 
+    getSnake() {
+        return this.snake;
+    }
+
     getHitbox() {
         const padding = 6;
         return {
@@ -72,6 +103,15 @@ export class PhysicsEngine {
             y: this.bird.y + padding,
             width: this.bird.width - padding * 2,
             height: this.bird.height - padding * 2
+        };
+    }
+
+    getSnakeHitbox() {
+        return {
+            x: this.snake.x + 5,
+            y: this.snake.y + 5,
+            width: this.snake.width - 10,
+            height: this.snake.height - 10
         };
     }
 

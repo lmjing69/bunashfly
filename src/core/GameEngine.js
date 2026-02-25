@@ -71,10 +71,10 @@ const CONFIG = {
     // 🎮 GAMEPLAY
     // ==========================================
     // Pipe scroll speed (lower = easier). Default: 2.0
-    pipeSpeed: 2.0,
+    pipeSpeed: 1.5,
 
     // Gap between top and bottom pipes (higher = easier). Default: 150
-    pipeGap: 150,
+    pipeGap: 200,
 
     // Game title shown on start screen
     gameTitle: 'Flying Bird',
@@ -122,7 +122,7 @@ export class GameEngine {
         this.lastTime = 0;
         this.accumulator = 0;
         this.pipeSpawnTimer = 0;
-        this.pipeSpawnInterval = 1800;
+        this.pipeSpawnInterval = 2200;
 
         this.animationFrameId = null;
 
@@ -249,14 +249,15 @@ export class GameEngine {
         let width = container.clientWidth;
         let height = container.clientHeight;
 
-        // Adapt mobile mode by natively filling the container dimensions
         let canvasWidth = width;
         let canvasHeight = height;
 
         if (isDesktop && isLandscape) {
-            // Cap width on ultrawide desktop monitors so it remains playable
             canvasWidth = Math.min(width, height * 1.8);
         }
+
+        const oldWidth = this.canvas.width;
+        const oldHeight = this.canvas.height;
 
         this.canvas.width = canvasWidth;
         this.canvas.height = canvasHeight;
@@ -266,6 +267,17 @@ export class GameEngine {
         if (this.state === GameState.INIT) {
             this.physics.init(this.canvas.width, this.canvas.height);
             this.pipeManager.init();
+        } else if (oldWidth !== canvasWidth || oldHeight !== canvasHeight) {
+            this.physics.canvas = this.canvas;
+            this.pipeManager.canvas = this.canvas;
+            this.pipeManager.init();
+            
+            if (this.physics.bird) {
+                const scaleX = canvasWidth / oldWidth;
+                const scaleY = canvasHeight / oldHeight;
+                this.physics.bird.x *= scaleX;
+                this.physics.bird.y *= scaleY;
+            }
         }
     }
 
@@ -290,6 +302,37 @@ export class GameEngine {
         this.highScore = this.storageManager.getHighScore();
     }
 
+    setDifficulty(difficulty) {
+        this.pipeManager.pipeSpeed = 2.5;
+        this.pipeManager.pipeGap = 170;
+        this.pipeManager.setDifficulty(2.5, 170, 120);
+        this.difficulty = 'medium';
+    }
+
+    pause() {
+        if (this.state === GameState.PLAYING) {
+            this.state = GameState.GAME_OVER;
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+            if (this.audioManager) {
+                this.audioManager.stopBgm();
+            }
+        }
+    }
+
+    resume() {
+        if (this.state === GameState.GAME_OVER && !this.isCrashed) {
+            this.state = GameState.PLAYING;
+            this.lastTime = performance.now();
+            if (this.audioManager) {
+                this.audioManager.playBgm();
+            }
+            this.animationFrameId = requestAnimationFrame(this._gameLoopBound || (this._gameLoopBound = this._gameLoop.bind(this)));
+        }
+    }
+
     async loadAudio() {
         if (!this.audioManager) return;
         if (CONFIG.bgmAudio) {
@@ -311,6 +354,9 @@ export class GameEngine {
     start() {
         this.physics.init(this.canvas.width, this.canvas.height);
         this.pipeManager.init();
+        this.pipeManager.reset();
+        this.pipeManager.spawnAt(this.canvas.width * 0.5);
+        this.pipeManager.spawnAt(this.canvas.width * 0.75);
         this.state = GameState.INIT;
         this.score = 0;
         this.isCrashed = false;
@@ -319,7 +365,6 @@ export class GameEngine {
             this.uiController.showStartScreen();
         }
 
-        // Draw initial frame
         this.render();
     }
 
@@ -328,11 +373,13 @@ export class GameEngine {
         this.score = 0;
         this.pipeSpawnTimer = 0;
         this.isCrashed = false;
+        this.bgScrollX = 0;
 
         this.physics.reset(this.canvas.width, this.canvas.height);
         this.pipeManager.reset();
-
-        this.pipeManager.spawn();
+        
+        this.pipeManager.spawnAt(this.canvas.width * 0.5);
+        this.pipeManager.spawnAt(this.canvas.width * 0.75);
 
         if (this.uiController) {
             this.uiController.hideStartScreen();
@@ -348,7 +395,7 @@ export class GameEngine {
             this.lastTime = performance.now();
         }
 
-        this.animationFrameId = requestAnimationFrame(() => this._gameLoop());
+        this.animationFrameId = requestAnimationFrame(this._gameLoopBound || (this._gameLoopBound = this._gameLoop.bind(this)));
     }
 
     _gameLoop() {
@@ -366,7 +413,7 @@ export class GameEngine {
         this.update(deltaTime);
         this.render();
 
-        requestAnimationFrame(() => this._gameLoop());
+        this.animationFrameId = requestAnimationFrame(this._gameLoopBound || (this._gameLoopBound = this._gameLoop.bind(this)));
     }
 
     update(deltaTime) {
@@ -410,6 +457,7 @@ export class GameEngine {
         this._drawBackground();
         this._drawPipes();
         this._drawBrickBorders();
+        this._drawSnake();
         this._drawBird();
     }
 
@@ -653,6 +701,25 @@ export class GameEngine {
         this.ctx.restore();
     }
 
+    // ===== SNAKE (COBRA) =====
+    _drawSnake() {
+        const snake = this.physics.getSnake();
+        
+        if (snake.x < -50) return;
+        
+        this.ctx.save();
+        this.ctx.translate(snake.x + snake.width / 2, snake.y + snake.height / 2);
+        
+        this.ctx.scale(-1, 1);
+        
+        this.ctx.font = `${snake.height * 1.2}px serif`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('🐍', 0, 0);
+        
+        this.ctx.restore();
+    }
+
     // ===== BIRD / CHARACTER =====
     _drawBird() {
         const bird = this.physics.getBird();
@@ -773,26 +840,25 @@ export class GameEngine {
             this.animationFrameId = null;
         }
 
-        // Pick a random crash face (emoji or image URL)
         const faces = CONFIG.crashFaces;
         this.crashFace = faces[Math.floor(Math.random() * faces.length)];
 
-        // If it's an image URL, set the pre-loaded image
         if (this._isImageUrl(this.crashFace) && this.crashFaceImages[this.crashFace]) {
             this.crashFaceImg = this.crashFaceImages[this.crashFace];
         } else {
             this.crashFaceImg = null;
         }
 
-        // Render one more frame with crash face
         this.render();
 
-        // Screen shake
         this.canvas.classList.add('shake');
         setTimeout(() => this.canvas.classList.remove('shake'), 500);
 
         if (this.audioManager) {
             this.audioManager.stopBgm();
+        }
+
+        if (this.audioManager) {
             this.audioManager.playCrash();
         }
 
@@ -809,13 +875,13 @@ export class GameEngine {
     }
 
     restart() {
-        this.isCrashed = false;
-        this.crashFaceImg = null;
-
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
+
+        this.isCrashed = false;
+        this.crashFaceImg = null;
 
         if (this.uiController) {
             this.uiController.hideGameOverScreen();
@@ -825,6 +891,7 @@ export class GameEngine {
         this.score = 0;
         this.pipeSpawnTimer = 0;
         this.lastTime = 0;
+        this.bgScrollX = 0;
 
         this.physics.reset(this.canvas.width, this.canvas.height);
         this.pipeManager.reset();
@@ -839,6 +906,6 @@ export class GameEngine {
             this.audioManager.playBgm();
         }
 
-        this.animationFrameId = requestAnimationFrame(() => this._gameLoop());
+        this.animationFrameId = requestAnimationFrame(this._gameLoopBound || (this._gameLoopBound = this._gameLoop.bind(this)));
     }
 }

@@ -28,11 +28,12 @@
             <div class="score-display">
                 <span id="score">0</span>
             </div>
+            <button id="pause-btn" class="pause-btn">⏸</button>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
             <div class="panel game-over-panel">
-                <h2 class="game-over-title">💀 Wasted!</h2>
+                <h2 class="game-over-title">Game Over</h2>
                 <div id="crash-face-container"></div>
                 <div class="scores">
                     <div class="score-item">
@@ -45,6 +46,13 @@
                     </div>
                 </div>
                 <button id="restart-btn" class="btn">Play Again</button>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="overlay hidden">
+            <div class="panel">
+                <h2 class="pause-title">Paused</h2>
+                <button id="resume-btn" class="btn">Resume</button>
             </div>
         </div>
     </div>

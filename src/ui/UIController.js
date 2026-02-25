@@ -3,9 +3,12 @@ export class UIController {
         this.startScreen = document.getElementById('start-screen');
         this.hud = document.getElementById('hud');
         this.gameOverScreen = document.getElementById('game-over-screen');
+        this.pauseScreen = document.getElementById('pause-screen');
 
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
+        this.resumeBtn = document.getElementById('resume-btn');
+        this.pauseBtn = document.getElementById('pause-btn');
 
         this.scoreDisplay = document.getElementById('score');
         this.finalScoreDisplay = document.getElementById('final-score');
@@ -30,6 +33,20 @@ export class UIController {
                 this.gameEngine.restart();
             }
         });
+
+        this.resumeBtn.addEventListener('click', () => {
+            this.hidePauseScreen();
+            if (this.gameEngine) {
+                this.gameEngine.resume();
+            }
+        });
+
+        this.pauseBtn.addEventListener('click', () => {
+            if (this.gameEngine) {
+                this.gameEngine.pause();
+                this.showPauseScreen();
+            }
+        });
     }
 
     setGameEngine(engine) {
@@ -37,13 +54,13 @@ export class UIController {
     }
 
     setManagers(assetManager, audioManager) {
-        // Kept for compatibility, no longer needs upload wiring
     }
 
     showStartScreen() {
         this.startScreen.classList.remove('hidden');
         this.hud.classList.add('hidden');
         this.gameOverScreen.classList.add('hidden');
+        this.pauseScreen.classList.add('hidden');
     }
 
     hideStartScreen() {
@@ -63,12 +80,11 @@ export class UIController {
         this.scoreDisplay.textContent = score;
     }
 
-    showGameOverScreen(score, highScore, crashFace = '💀') {
+    showGameOverScreen(score, highScore, crashFace = '') {
         this.finalScoreDisplay.textContent = score;
         this.highScoreDisplay.textContent = highScore;
 
-        // Show crash face
-        if (this.crashFaceContainer) {
+        if (this.crashFaceContainer && crashFace) {
             if (crashFace.includes('/') || crashFace.includes('.')) {
                 this.crashFaceContainer.innerHTML = `<img src="${crashFace}" class="crash-face-img" alt="Crash Face">`;
             } else {
@@ -87,5 +103,13 @@ export class UIController {
 
     hideGameOverScreen() {
         this.gameOverScreen.classList.add('hidden');
+    }
+
+    showPauseScreen() {
+        this.pauseScreen.classList.remove('hidden');
+    }
+
+    hidePauseScreen() {
+        this.pauseScreen.classList.add('hidden');
     }
 }
