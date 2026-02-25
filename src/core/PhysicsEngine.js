@@ -38,7 +38,7 @@ export class PhysicsEngine {
         this.bird.velocity = this.jumpForce;
     }
 
-    update(deltaTime) {
+    update(deltaTime, isCrashed = false) {
         const normalizedDelta = deltaTime / 16.67;
 
         this.bird.velocity += this.gravity * normalizedDelta;
@@ -54,7 +54,9 @@ export class PhysicsEngine {
         }
 
         this._clampBounds();
-        this._updateSnake(deltaTime);
+        if (!isCrashed) {
+            this._updateSnake(deltaTime);
+        }
     }
 
     _updateSnake(deltaTime) {

@@ -417,7 +417,7 @@ export class GameEngine {
     }
 
     update(deltaTime) {
-        this.physics.update(deltaTime);
+        this.physics.update(deltaTime, this.isCrashed);
         this.pipeManager.update(deltaTime);
 
         // Scroll background
@@ -457,10 +457,8 @@ export class GameEngine {
         this._drawBackground();
         this._drawPipes();
         this._drawBrickBorders();
+        this._drawSnake();
         this._drawBird();
-        if (this.isCrashed) {
-            this._drawSnake();
-        }
     }
 
     // ===== BACKGROUND: Ruined City Skyline =====
