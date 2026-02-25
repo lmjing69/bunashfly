@@ -8,7 +8,6 @@ export class UIController {
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
         this.resumeBtn = document.getElementById('resume-btn');
-        this.pauseBtn = document.getElementById('pause-btn');
 
         this.scoreDisplay = document.getElementById('score');
         this.finalScoreDisplay = document.getElementById('final-score');
@@ -38,13 +37,6 @@ export class UIController {
             this.hidePauseScreen();
             if (this.gameEngine) {
                 this.gameEngine.resume();
-            }
-        });
-
-        this.pauseBtn.addEventListener('click', () => {
-            if (this.gameEngine) {
-                this.gameEngine.pause();
-                this.showPauseScreen();
             }
         });
     }
