@@ -202,32 +202,46 @@ export class AudioManager {
                 if (type === 'crash') {
                     this._ensureAudioContext();
 
+                    if (!this._audioContext) {
+                        this.crashSfx = { play: () => { audio.currentTime = 0; audio.play(); } };
+                        resolve(this.crashSfx);
+                        return;
+                    }
+
                     fetch(url)
-                        .then(res => res.arrayBuffer())
-                        .then(arrayBuffer => {
-                            if (this._audioContext) {
-                                this._audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-                                    this.crashSfx = {
-                                        buffer: buffer,
-                                        play: () => {
-                                            if (this.isMuted || !this._audioContext) return;
-                                            const source = this._audioContext.createBufferSource();
-                                            const gain = this._audioContext.createGain();
-                                            source.buffer = buffer;
-                                            gain.gain.setValueAtTime(this.sfxVolume, this._audioContext.currentTime);
-                                            source.connect(gain);
-                                            gain.connect(this._audioContext.destination);
-                                            source.start();
-                                        }
-                                    };
-                                    resolve(this.crashSfx);
-                                }, reject);
-                            } else {
-                                this.crashSfx = { play: () => { audio.currentTime = 0; audio.play(); } };
-                                resolve(this.crashSfx);
-                            }
+                        .then(res => {
+                            if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+                            return res.arrayBuffer();
                         })
-                        .catch(reject);
+                        .then(arrayBuffer => {
+                            const decodePromise = this._audioContext.decodeAudioData(arrayBuffer);
+                            if (decodePromise && typeof decodePromise.then === 'function') {
+                                return decodePromise;
+                            }
+                            return new Promise((resolve, reject) => {
+                                this._audioContext.decodeAudioData(arrayBuffer, resolve, reject);
+                            });
+                        })
+                        .then(buffer => {
+                            this.crashSfx = {
+                                buffer: buffer,
+                                play: () => {
+                                    if (this.isMuted || !this._audioContext) return;
+                                    const source = this._audioContext.createBufferSource();
+                                    const gain = this._audioContext.createGain();
+                                    source.buffer = buffer;
+                                    gain.gain.setValueAtTime(this.sfxVolume, this._audioContext.currentTime);
+                                    source.connect(gain);
+                                    gain.connect(this._audioContext.destination);
+                                    source.start();
+                                }
+                            };
+                            resolve(this.crashSfx);
+                        })
+                        .catch((e) => {
+                            console.warn('Failed to load crash sound:', e);
+                            reject(e);
+                        });
                 }
             };
 
