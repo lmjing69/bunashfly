@@ -1,25 +1,19 @@
 export class PhysicsEngine {
     constructor(canvas) {
         this.canvas = canvas;
-        this.gravity = 0.4;
-        this.jumpForce = -7;
-        this.maxVelocity = 9;
+        this.gravity = 0.25;
+        this.jumpForce = -5.5;
+        this.maxVelocity = 6;
         this.borderHeight = 40;
         this.bird = {
             x: 0,
             y: 0,
-            width: 45,
-            height: 45,
+            width: 60,
+            height: 60,
             velocity: 0,
             rotation: 0
         };
-        this.snake = {
-            x: 0,
-            y: 0,
-            width: 60,
-            height: 30,
-            speed: 3.5
-        };
+        // Snake removed as requested
         this.rotationSpeed = 0.1;
         this.maxRotation = Math.PI / 4;
     }
@@ -30,8 +24,7 @@ export class PhysicsEngine {
         this.bird.velocity = 0;
         this.bird.rotation = 0;
         
-        this.snake.x = -80;
-        this.snake.y = canvasHeight * 0.45;
+        // Snake init removed
     }
 
     jump() {
@@ -54,30 +47,7 @@ export class PhysicsEngine {
         }
 
         this._clampBounds();
-        if (!isCrashed) {
-            this._updateSnake(deltaTime);
-        }
-    }
-
-    _updateSnake(deltaTime) {
-        const normalizedDelta = deltaTime / 16.67;
-        
-        const targetX = this.bird.x - 80;
-        
-        if (this.snake.x < targetX) {
-            this.snake.x += this.snake.speed * normalizedDelta;
-        }
-        
-        const targetY = this.bird.y + this.bird.height / 2 - this.snake.height / 2;
-        const diff = targetY - this.snake.y;
-        this.snake.y += diff * 0.03 * normalizedDelta;
-        
-        this.snake.y = Math.max(this.borderHeight + 10, Math.min(this.canvas.height - this.borderHeight - this.snake.height - 10, this.snake.y));
-    }
-
-    snakeAttack(bird) {
-        this.snake.x = bird.x + bird.width * 0.1;
-        this.snake.y = bird.y + bird.height * 0.15;
+        // Snake update removed
     }
 
     _clampBounds() {
@@ -97,10 +67,6 @@ export class PhysicsEngine {
 
     getBird() {
         return this.bird;
-    }
-
-    getSnake() {
-        return this.snake;
     }
 
     getHitbox() {

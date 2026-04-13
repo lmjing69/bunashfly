@@ -22,14 +22,20 @@ const CONFIG = {
     // Examples:
     //   './assets/modi.png'
     //   'https://example.com/my-face.png'
-    characterImage: './assets/character.jpeg',
+    characterImage: './assets/lam2.jpeg',
+
+    // ==========================================
+    // 🏃 CHASER IMAGE
+    // ==========================================
+    // A second character that chases the bird but never catches up
+    chaserImage: './assets/jes.jpeg',
 
     // ==========================================
     // 🚧 OBSTACLE IMAGE
     // ==========================================
     // Set a URL/path to use a custom obstacle image instead of wooden pipes
     // Set to null for default rustic pipes
-    obstacleImage: './assets/obstacles.jpeg',
+    obstacleImage: './assets/lam1.jpeg',
 
     // ==========================================
     // 🌆 BACKGROUND IMAGE
@@ -49,7 +55,7 @@ const CONFIG = {
     // If it's an image URL, it will be preloaded.
     // Examples:
     //   crashFaces: ['😵', '💀', './assets/funny1.png', './assets/funny2.png']
-    crashFaces: ['./assets/wasted.jpg'],
+    crashFaces: ['./assets/lam.jpeg'],
 
     // ==========================================
     // 🎵 BACKGROUND MUSIC
@@ -71,10 +77,10 @@ const CONFIG = {
     // 🎮 GAMEPLAY
     // ==========================================
     // Pipe scroll speed (lower = easier). Default: 2.0
-    pipeSpeed: 1.5,
+    pipeSpeed: 1.0,
 
     // Gap between top and bottom pipes (higher = easier). Default: 150
-    pipeGap: 200,
+    pipeGap: 280,
 
     // Game title shown on start screen
     gameTitle: 'Flying Bird',
@@ -122,7 +128,7 @@ export class GameEngine {
         this.lastTime = 0;
         this.accumulator = 0;
         this.pipeSpawnTimer = 0;
-        this.pipeSpawnInterval = 2200;
+        this.pipeSpawnInterval = 3200;
 
         this.animationFrameId = null;
 
@@ -133,12 +139,17 @@ export class GameEngine {
 
         // Loaded images
         this.characterImg = null;
+        this.chaserImg = null;
         this.obstacleImg = null;
         this.backgroundImg = null;
         this.crashFaceImages = {};  // Map of URL -> loaded Image
         this.isCrashed = false;
         this.crashFace = '';         // Current crash face (emoji or URL)
         this.crashFaceImg = null;    // Current crash face Image object (if URL)
+
+        // Chaser state
+        this.chaser = { x: 0, y: 0, size: 50 };
+        this.chaserCaughtUp = false;
 
         // Background scroll
         this.bgScrollX = 0;
@@ -182,6 +193,13 @@ export class GameEngine {
                 this.obstacleImg = await this._loadImage(CONFIG.obstacleImage);
             } catch (e) {
                 console.warn('Failed to load obstacle image:', e);
+            }
+        }
+        if (CONFIG.chaserImage) {
+            try {
+                this.chaserImg = await this._loadImage(CONFIG.chaserImage);
+            } catch (e) {
+                console.warn('Failed to load chaser image:', e);
             }
         }
         if (CONFIG.backgroundImage) {
@@ -374,6 +392,12 @@ export class GameEngine {
         this.pipeSpawnTimer = 0;
         this.isCrashed = false;
         this.bgScrollX = 0;
+        this.chaserCaughtUp = false;
+
+        // Initialize chaser behind the bird
+        const bird = this.physics.getBird();
+        this.chaser.x = bird.x - 100;
+        this.chaser.y = bird.y;
 
         this.physics.reset(this.canvas.width, this.canvas.height);
         this.pipeManager.reset();
@@ -423,6 +447,9 @@ export class GameEngine {
         // Scroll background
         this.bgScrollX += 0.3 * (deltaTime / 16.67);
 
+        // Update chaser position
+        this._updateChaser(deltaTime);
+
         this.pipeSpawnTimer += deltaTime;
         if (this.pipeSpawnTimer >= this.pipeSpawnInterval) {
             this.pipeSpawnTimer = 0;
@@ -457,7 +484,7 @@ export class GameEngine {
         this._drawBackground();
         this._drawPipes();
         this._drawBrickBorders();
-        this._drawSnake();
+        this._drawChaser();
         this._drawBird();
     }
 
@@ -617,43 +644,101 @@ export class GameEngine {
             return;
         }
 
-        const capHeight = 24;
+        const x = pipeRect.x;
+        const y = pipeRect.y;
+        const w = pipeRect.width;
+        const h = pipeRect.height;
+        const capH = 28;
 
-        // Wooden / rustic pipe gradient
-        const gradient = this.ctx.createLinearGradient(pipeRect.x, 0, pipeRect.x + pipeRect.width, 0);
-        gradient.addColorStop(0, CONFIG.obstacleGradientStart);
-        gradient.addColorStop(0.3, CONFIG.obstacleGradientMid);
-        gradient.addColorStop(0.7, CONFIG.obstacleGradientMid);
-        gradient.addColorStop(1, CONFIG.obstacleGradientEnd);
+        // === Main body: dark metallic gradient ===
+        const bodyGrad = this.ctx.createLinearGradient(x, 0, x + w, 0);
+        bodyGrad.addColorStop(0, '#1a1a2e');
+        bodyGrad.addColorStop(0.15, '#2d2d4a');
+        bodyGrad.addColorStop(0.5, '#3a3a5c');
+        bodyGrad.addColorStop(0.85, '#2d2d4a');
+        bodyGrad.addColorStop(1, '#1a1a2e');
+        this.ctx.fillStyle = bodyGrad;
+        this.ctx.fillRect(x, y, w, h);
 
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(pipeRect.x, pipeRect.y, pipeRect.width, pipeRect.height);
+        // === Zig-zag chevron pattern ===
+        const zigH = 18;
+        const zigW = w / 4;
+        this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+        this.ctx.lineWidth = 2;
 
-        // Pipe cap
-        this.ctx.fillStyle = CONFIG.obstacleCap;
-        if (isTop) {
-            this.ctx.fillRect(pipeRect.x - 3, pipeRect.y + pipeRect.height - capHeight, pipeRect.width + 6, capHeight);
-        } else {
-            this.ctx.fillRect(pipeRect.x - 3, pipeRect.y, pipeRect.width + 6, capHeight);
-        }
-
-        // Cap inner highlight
-        this.ctx.fillStyle = CONFIG.obstacleCapInner;
-        if (isTop) {
-            this.ctx.fillRect(pipeRect.x + 2, pipeRect.y + pipeRect.height - capHeight + 4, pipeRect.width - 4, capHeight - 8);
-        } else {
-            this.ctx.fillRect(pipeRect.x + 2, pipeRect.y + 4, pipeRect.width - 4, capHeight - 8);
-        }
-
-        // Wood grain lines
-        this.ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        this.ctx.lineWidth = 1;
-        for (let ly = pipeRect.y; ly < pipeRect.y + pipeRect.height; ly += 12) {
+        for (let ly = y; ly < y + h; ly += zigH * 2) {
             this.ctx.beginPath();
-            this.ctx.moveTo(pipeRect.x + 3, ly);
-            this.ctx.lineTo(pipeRect.x + pipeRect.width - 3, ly);
+            for (let lx = 0; lx <= w; lx += zigW) {
+                const px = x + lx;
+                const py = ly + ((lx / zigW) % 2 === 0 ? 0 : zigH);
+                if (lx === 0) this.ctx.moveTo(px, py);
+                else this.ctx.lineTo(px, py);
+            }
             this.ctx.stroke();
         }
+
+        // === Subtle vertical highlight strip ===
+        const hlGrad = this.ctx.createLinearGradient(x, 0, x + w, 0);
+        hlGrad.addColorStop(0, 'rgba(255,255,255,0)');
+        hlGrad.addColorStop(0.4, 'rgba(255,255,255,0.06)');
+        hlGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+        hlGrad.addColorStop(0.6, 'rgba(255,255,255,0.06)');
+        hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        this.ctx.fillStyle = hlGrad;
+        this.ctx.fillRect(x, y, w, h);
+
+        // === Glowing edge cap ===
+        const capY = isTop ? y + h - capH : y;
+
+        // Cap background
+        const capGrad = this.ctx.createLinearGradient(x - 4, 0, x + w + 4, 0);
+        capGrad.addColorStop(0, '#f59e0b');
+        capGrad.addColorStop(0.3, '#fbbf24');
+        capGrad.addColorStop(0.5, '#fcd34d');
+        capGrad.addColorStop(0.7, '#fbbf24');
+        capGrad.addColorStop(1, '#f59e0b');
+        this.ctx.fillStyle = capGrad;
+        this.ctx.fillRect(x - 4, capY, w + 8, capH);
+
+        // Inner cap bevel
+        const innerGrad = this.ctx.createLinearGradient(0, capY, 0, capY + capH);
+        innerGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+        innerGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+        innerGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
+        this.ctx.fillStyle = innerGrad;
+        this.ctx.fillRect(x - 2, capY + 2, w + 4, capH - 4);
+
+        // Cap zig-zag accent
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        this.ctx.lineWidth = 1.5;
+        const accentY = capY + capH / 2;
+        const accentZigW = (w + 8) / 6;
+        this.ctx.beginPath();
+        for (let i = 0; i <= 6; i++) {
+            const px = x - 4 + i * accentZigW;
+            const py = accentY + (i % 2 === 0 ? -3 : 3);
+            if (i === 0) this.ctx.moveTo(px, py);
+            else this.ctx.lineTo(px, py);
+        }
+        this.ctx.stroke();
+
+        // Glow effect on cap
+        this.ctx.shadowColor = 'rgba(245, 158, 11, 0.4)';
+        this.ctx.shadowBlur = 12;
+        this.ctx.strokeStyle = '#f59e0b';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x - 4, capY, w + 8, capH);
+        this.ctx.shadowBlur = 0;
+
+        // === Side border lines ===
+        this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.lineTo(x, y + h);
+        this.ctx.moveTo(x + w, y);
+        this.ctx.lineTo(x + w, y + h);
+        this.ctx.stroke();
     }
 
     _drawImagePipe(pipeRect, isTop) {
@@ -701,20 +786,58 @@ export class GameEngine {
         this.ctx.restore();
     }
 
-    // ===== SNAKE (COBRA) =====
-    _drawSnake() {
-        const snake = this.physics.getSnake();
-        
+    // ===== CHASER CHARACTER =====
+    _updateChaser(deltaTime) {
+        const bird = this.physics.getBird();
+        const norm = deltaTime / 16.67;
+
+        // Chase the bird but stay ~80px behind
+        const targetX = bird.x - 80;
+        const targetY = bird.y + (bird.height - this.chaser.size) / 2;
+
+        // Smooth follow with lag (never catches up)
+        this.chaser.x += (targetX - this.chaser.x) * 0.04 * norm;
+        this.chaser.y += (targetY - this.chaser.y) * 0.06 * norm;
+
+        // Clamp within borders
+        this.chaser.y = Math.max(42, Math.min(this.canvas.height - 42 - this.chaser.size, this.chaser.y));
+    }
+
+    _drawChaser() {
+        if (!this.chaserImg) return;
+
+        const bird = this.physics.getBird();
+        let cx, cy, size;
+
+        if (this.isCrashed && this.chaserCaughtUp) {
+            // Sit on top of the bird after crash
+            cx = bird.x + bird.width / 2;
+            cy = bird.y - this.chaser.size * 0.4;
+            size = this.chaser.size;
+        } else {
+            cx = this.chaser.x + this.chaser.size / 2;
+            cy = this.chaser.y + this.chaser.size / 2;
+            size = this.chaser.size;
+        }
+
         this.ctx.save();
-        this.ctx.translate(snake.x + snake.width / 2, snake.y + snake.height / 2);
-        
-        this.ctx.scale(-1, 1);
-        
-        this.ctx.font = `${snake.height * 1.2}px serif`;
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('🐍', 0, 0);
-        
+        this.ctx.translate(cx, cy);
+
+        // Draw circular clipped image
+        const radius = size / 2;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        this.ctx.closePath();
+        this.ctx.clip();
+        this.ctx.drawImage(this.chaserImg, -radius, -radius, size, size);
+
+        // Border
+        this.ctx.strokeStyle = '#ff6b6b';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, radius - 1, 0, Math.PI * 2);
+        this.ctx.stroke();
+
         this.ctx.restore();
     }
 
@@ -832,14 +955,17 @@ export class GameEngine {
     _gameOver() {
         this.state = GameState.GAME_OVER;
         this.isCrashed = true;
+        this.chaserCaughtUp = true;
+
+        // Stop background music immediately
+        if (this.audioManager) {
+            this.audioManager.stopBgm();
+        }
 
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-
-        const bird = this.physics.getBird();
-        this.physics.snakeAttack(bird);
 
         const faces = CONFIG.crashFaces;
         this.crashFace = faces[Math.floor(Math.random() * faces.length)];
@@ -856,10 +982,6 @@ export class GameEngine {
         setTimeout(() => this.canvas.classList.remove('shake'), 500);
 
         if (this.audioManager) {
-            this.audioManager.stopBgm();
-        }
-
-        if (this.audioManager) {
             this.audioManager.playCrash();
         }
 
@@ -870,6 +992,7 @@ export class GameEngine {
             }
         }
 
+        // Show game over screen with crash face and Try Again button
         if (this.uiController) {
             this.uiController.showGameOverScreen(this.score, this.highScore, this.crashFace);
         }

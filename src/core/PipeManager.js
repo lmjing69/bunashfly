@@ -148,12 +148,14 @@ export class PipeManager {
         if (this.lastGapY === 0) {
             gapY = this.minGapY + availableHeight * 0.5;
         } else {
-            const minGap = this.minGapY;
-            const maxGap = this.maxGapY;
-            const maxShift = availableHeight;
-            const shift = (Math.random() - 0.5) * maxShift;
-            gapY = this.lastGapY + shift;
-            gapY = Math.max(minGap, Math.min(maxGap, gapY));
+            // Zig-zag: alternate between upper and lower positions
+            const zigzagShift = availableHeight * 0.15;
+            const direction = this._zigzagUp ? -1 : 1;
+            gapY = this.minGapY + availableHeight * 0.5 + direction * zigzagShift;
+            // Add some randomness so it's not perfectly predictable
+            gapY += (Math.random() - 0.5) * availableHeight * 0.15;
+            gapY = Math.max(this.minGapY, Math.min(this.maxGapY, gapY));
+            this._zigzagUp = !this._zigzagUp;
         }
         
         this.lastGapY = gapY;
